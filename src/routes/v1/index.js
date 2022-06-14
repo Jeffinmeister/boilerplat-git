@@ -18,7 +18,7 @@ const defaultRoutes = [
 ];
 
 const devRoutes = [
-  // routes available only in development modess
+  // routes available only in development modes not allowed
   {
     path: '/docs',
     route: docsRoute,
