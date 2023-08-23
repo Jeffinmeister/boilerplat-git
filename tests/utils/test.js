@@ -1,8 +1,7 @@
+
 const axios = require('axios');
-const fs = require('fs');
 const zlib = require('zlib');
 
-const outputPath = 'output.json';
 
 axios({
   method: 'get',
@@ -11,24 +10,36 @@ axios({
 })
 .then(response => {
   const unzip = zlib.createGunzip();
-  const writeStream = fs.createWriteStream(outputPath);
+  response.data.pipe(unzip);
 
-  response.data.pipe(unzip).pipe(writeStream);
+  let jsonData = '';
 
-  writeStream.on('finish', () => {
-    console.log('File downloaded and extracted successfully.');
-
-    // Now you can read the JSON file and work with its data
-    const jsonData = require(`${outputPath}`);
-    const formattedData = Array.isArray(jsonData) ? jsonData : [jsonData];
-
-    console.log(formattedData);
-
-    // You can also perform further processing on jsonData here
+  unzip.on('data', chunk => {
+    jsonData += chunk.toString('utf8');  // Convert the chunk to a string using 'utf8'
   });
 
-  writeStream.on('error', error => {
-    console.error('Error writing to file:', error);
+  unzip.on('end', () => {
+    console.log('File downloaded and extracted successfully.');
+
+    try {
+      // Assuming each line is a JSON object, split by newline character
+      const jsonLines = jsonData.split('\n');
+      const formattedData = jsonLines.map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (error) {
+          console.error('Error parsing JSON line:', error);
+          return null;  // Handle parsing errors gracefully
+        }
+      }).filter(item => item !== null);
+
+      console.log('Formatted JSON data:');
+      console.log(formattedData[0]);
+
+      // You can perform further processing on formattedData here
+    } catch (error) {
+      console.error('Error processing JSON data:', error);
+    }
   });
 })
 .catch(error => {
